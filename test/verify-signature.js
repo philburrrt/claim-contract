@@ -1,38 +1,81 @@
-const { expect } = require("chai")
-const { ethers } = require("hardhat")
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
 
-describe("VerifySignature", function () {
+describe("Verify Signature", function () {
   it("Check signature", async function () {
-    const accounts = await ethers.getSigners(2)
+    const accounts = await ethers.getSigners(2);
+    const VerifySignature = await ethers.getContractFactory("VerifySig");
+    const contract = await VerifySignature.deploy();
+    await contract.deployed();
 
-    const VerifySignature = await ethers.getContractFactory("VerifySignature")
-    const contract = await VerifySignature.deploy()
-    await contract.deployed()
+    //     // const PRIV_KEY = "0x..."
+    //     // const signer = new ethers.Wallet(PRIV_KEY)
+    const signer = accounts[0];
+    const signerAddress = accounts[0].address;
+    const to = accounts[1].address;
+    const amount = 999;
+    const nonce = 123;
 
-    // const PRIV_KEY = "0x..."
-    // const signer = new ethers.Wallet(PRIV_KEY)
-    const signer = accounts[0]
-    const to = accounts[1].address
-    const amount = 999
-    const message = "Hello"
-    const nonce = 123
+    console.log(
+      "\n signerAddress: ",
+      signerAddress,
+      "\n to: ",
+      to,
+      "\n amount: ",
+      amount,
+      "\n nonce: ",
+      nonce
+    );
 
-    const hash = await contract.getMessageHash(to, amount, message, nonce)
-    const sig = await signer.signMessage(ethers.utils.arrayify(hash))
+    // hash = signature without contract
+    // contractHash = signature with contract
+    // they both match
+    const hash = ethers.utils.solidityKeccak256(
+      ["address", "uint256", "uint256"],
+      [to, amount, nonce]
+    );
 
-    const ethHash = await contract.getEthSignedMessageHash(hash)
+    // append \x19Ethereum Signed Message:\n32 to hash
 
-    console.log("signer          ", signer.address)
-    console.log("recovered signer", await contract.recoverSigner(ethHash, sig))
+    // sign the hash with the signer
+    const signature = await signer.signMessage(ethers.utils.arrayify(hash));
 
-    // Correct signature and message returns true
-    expect(
-      await contract.verify(signer.address, to, amount, message, nonce, sig)
-    ).to.equal(true)
+    // replicate getEthSignedMessageHash
+    const ethSignedHash = ethers.utils.solidityKeccak256(
+      ["string", "bytes"],
+      ["\x19Ethereum Signed Message:\n32", signature]
+    );
 
-    // Incorrect message returns false
-    expect(
-      await contract.verify(signer.address, to, amount + 1, message, nonce, sig)
-    ).to.equal(false)
-  })
-})
+    console.log(
+      "\n hash: ",
+      hash,
+      "\n signature: ",
+      signature,
+      "\n ethSignedHash: ",
+      ethSignedHash
+    );
+
+    // verify that the message was signed by the signer
+    const isValid = await contract.verify(
+      signerAddress,
+      to,
+      amount,
+      nonce,
+      signature
+    );
+    expect(isValid).to.equal(true);
+
+    // procss done onchain
+
+    // const message = await contract.getMessageHash(to, amount, nonce);
+    // const signature = await signer.signMessage(ethers.utils.arrayify(message));
+    // const verify = await contract.verify(
+    //   signerAddress,
+    //   to,
+    //   amount,
+    //   nonce,
+    //   signature
+    // );
+    // expect(verify).to.equal(true);
+  });
+});
