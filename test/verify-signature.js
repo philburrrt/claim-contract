@@ -5,8 +5,7 @@ describe("Verify Signature", function () {
   it("Check signature", async function () {
     const accounts = await ethers.getSigners(2);
     const VerifySignature = await ethers.getContractFactory("VerifySig");
-    const contract = await VerifySignature.deploy();
-    await contract.deployed();
+    const verify = await VerifySignature.deploy();
 
     //     // const PRIV_KEY = "0x..."
     //     // const signer = new ethers.Wallet(PRIV_KEY)
@@ -53,20 +52,33 @@ describe("Verify Signature", function () {
     );
 
     // verify that the message was signed by the signer
-    const isValid = await contract.verify(signerAddress, to, amount, signature);
+    const isValid = await verify.verify(signerAddress, to, amount, signature);
     expect(isValid).to.equal(true);
+  });
 
-    // procss done onchain
+  it("Claims 999 tokens from the contract", async function () {
+    const accounts = await ethers.getSigners(2);
+    const VerifySignature = await ethers.getContractFactory("VerifySig");
+    const verify = await VerifySignature.deploy();
+    await verify.deployed();
+    const MetaverseToken = await ethers.getContractFactory("MetaverseToken");
+    const token = await MetaverseToken.deploy();
+    await token.deployed();
 
-    // const message = await contract.getMessageHash(to, amount, nonce);
-    // const signature = await signer.signMessage(ethers.utils.arrayify(message));
-    // const verify = await contract.verify(
-    //   signerAddress,
-    //   to,
-    //   amount,
-    //   nonce,
-    //   signature
-    // );
-    // expect(verify).to.equal(true);
+    const signer = accounts[0];
+    const signerAddress = accounts[0].address;
+    const to = accounts[1].address;
+    const amount = 999;
+
+    const message = ethers.utils.solidityKeccak256(
+      ["address", "uint256"],
+      [to, amount]
+    );
+
+    const signature = await signer.signMessage(ethers.utils.arrayify(message));
+
+    // log signers eth balance
+    const ethBalance = await signer.getBalance();
+    console.log("\n ethBalance: ", ethers.utils.formatEther(ethBalance));
   });
 });
