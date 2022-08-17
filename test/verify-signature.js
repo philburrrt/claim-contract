@@ -6,12 +6,14 @@ describe("Verify Signature", function () {
     const accounts = await ethers.getSigners(2);
     const VerifySignature = await ethers.getContractFactory("VerifySig");
     const verify = await VerifySignature.deploy();
+    const MetaverseToken = await ethers.getContractFactory("MetaverseToken");
+    const token = await MetaverseToken.deploy();
 
     //     // const PRIV_KEY = "0x..."
     //     // const signer = new ethers.Wallet(PRIV_KEY)
     const signer = accounts[0];
     const signerAddress = accounts[0].address;
-    const to = accounts[1].address;
+    const to = "0x377acc3717a67e2f5d8e7818c0360bcdf0e17af4";
     const amount = 999;
 
     console.log(
@@ -54,31 +56,12 @@ describe("Verify Signature", function () {
     // verify that the message was signed by the signer
     const isValid = await verify.verify(signerAddress, to, amount, signature);
     expect(isValid).to.equal(true);
-  });
 
-  it("Claims 999 tokens from the contract", async function () {
-    const accounts = await ethers.getSigners(2);
-    const VerifySignature = await ethers.getContractFactory("VerifySig");
-    const verify = await VerifySignature.deploy();
-    await verify.deployed();
-    const MetaverseToken = await ethers.getContractFactory("MetaverseToken");
-    const token = await MetaverseToken.deploy();
-    await token.deployed();
+    // claim tokens from the contract
+    await token.claim(to, amount, signature);
 
-    const signer = accounts[0];
-    const signerAddress = accounts[0].address;
-    const to = accounts[1].address;
-    const amount = 999;
-
-    const message = ethers.utils.solidityKeccak256(
-      ["address", "uint256"],
-      [to, amount]
-    );
-
-    const signature = await signer.signMessage(ethers.utils.arrayify(message));
-
-    // log signers eth balance
-    const ethBalance = await signer.getBalance();
-    console.log("\n ethBalance: ", ethers.utils.formatEther(ethBalance));
+    // verify that 999 tokens were claimed
+    const balance = await token.balanceOf(to);
+    expect(balance.toNumber()).to.equal(amount);
   });
 });

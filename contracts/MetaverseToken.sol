@@ -4,10 +4,16 @@ pragma solidity ^0.8.15;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./VerifySig.sol";
 
-contract MetaverseToken is ERC20, Pausable, Ownable {
-    VerifySig public verifySig;
+contract MetaverseToken is
+    ERC20,
+    Pausable,
+    Ownable,
+    VerifySig,
+    ReentrancyGuard
+{
     mapping(address => uint256) public claimed;
     address public signer;
 
@@ -29,14 +35,13 @@ contract MetaverseToken is ERC20, Pausable, Ownable {
         address to,
         uint256 amount,
         bytes memory signature
-    ) public {
-        bool verified = verifySig.verify(signer, to, amount, signature);
+    ) public nonReentrant {
+        bool verified = verify(signer, to, amount, signature);
         uint256 claimable = amount - claimed[to];
-        require(verified == true, "Signature cannot be verified");
+        require(verified, "Signature cannot be verified");
         require(claimable > 0, "Not enough tokens to claim");
-        if (verified && claimable > 0) {
-            claimed[to] = amount;
-            _mint(to, claimable);
+        if (verified) {
+            _mint(to, amount);
         }
     }
 }

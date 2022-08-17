@@ -12,7 +12,8 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.3",
     "@rari-capital/solmate": "^6.4.0",
-    "hardhat": "^2.9.7"
+    "hardhat": "^2.9.7",
+    "hardhat-tracer": "^1.1.0-rc.6"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
