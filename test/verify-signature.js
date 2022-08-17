@@ -14,7 +14,6 @@ describe("Verify Signature", function () {
     const signerAddress = accounts[0].address;
     const to = accounts[1].address;
     const amount = 999;
-    const nonce = 123;
 
     console.log(
       "\n signerAddress: ",
@@ -22,17 +21,15 @@ describe("Verify Signature", function () {
       "\n to: ",
       to,
       "\n amount: ",
-      amount,
-      "\n nonce: ",
-      nonce
+      amount
     );
 
     // hash = signature without contract
     // contractHash = signature with contract
     // they both match
     const hash = ethers.utils.solidityKeccak256(
-      ["address", "uint256", "uint256"],
-      [to, amount, nonce]
+      ["address", "uint256"],
+      [to, amount]
     );
 
     // append \x19Ethereum Signed Message:\n32 to hash
@@ -56,13 +53,7 @@ describe("Verify Signature", function () {
     );
 
     // verify that the message was signed by the signer
-    const isValid = await contract.verify(
-      signerAddress,
-      to,
-      amount,
-      nonce,
-      signature
-    );
+    const isValid = await contract.verify(signerAddress, to, amount, signature);
     expect(isValid).to.equal(true);
 
     // procss done onchain

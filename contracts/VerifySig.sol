@@ -18,12 +18,12 @@ How to Sign and Verify
 contract VerifySig {
     // packs the message
 
-    function getMessageHash(
-        address _to,
-        uint256 _amount,
-        uint256 _nonce
-    ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_to, _amount, _nonce));
+    function getMessageHash(address _to, uint256 _amount)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(_to, _amount));
     }
 
     /* 3. Sign message hash
@@ -68,10 +68,9 @@ contract VerifySig {
         address _signer,
         address _to,
         uint256 _amount,
-        uint256 _nonce,
         bytes memory signature
     ) public pure returns (bool) {
-        bytes32 messageHash = getMessageHash(_to, _amount, _nonce);
+        bytes32 messageHash = getMessageHash(_to, _amount);
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
 
         return recoverSigner(ethSignedMessageHash, signature) == _signer;
