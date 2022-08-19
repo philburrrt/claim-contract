@@ -7,7 +7,7 @@ describe("Verify Signature", function () {
     const VerifySignature = await ethers.getContractFactory("VerifySig");
     const verify = await VerifySignature.deploy();
     const MetaverseToken = await ethers.getContractFactory("MetaverseToken");
-    const token = await MetaverseToken.deploy();
+    const token = await MetaverseToken.deploy(accounts[0].address);
 
     //     // const PRIV_KEY = "0x..."
     //     // const signer = new ethers.Wallet(PRIV_KEY)
@@ -58,7 +58,7 @@ describe("Verify Signature", function () {
     expect(isValid).to.equal(true);
 
     // claim tokens from the contract
-    await token.claim(to, amount, signature);
+    await token.bootstrapClaim(to, amount, signature);
 
     // verify that 999 tokens were claimed
     const balance = await token.balanceOf(to);
