@@ -34,6 +34,8 @@ contract MetaverseToken is
     uint256 reservedSupply;
     uint256 reservedCounter;
 
+    bool distributionSet;
+
     mapping(address => uint256) public claimed;
     address public signer;
 
@@ -53,6 +55,7 @@ contract MetaverseToken is
         seedSupply = _seedSupply;
         incentiveSupply = _incentiveSupply;
         reservedSupply = _reservedSupply;
+        distributionSet = true;
     }
 
     function setSigner(address _signer) public {
@@ -62,21 +65,16 @@ contract MetaverseToken is
     function bootstrapClaim(
         address to,
         uint256 amount,
-        bytes memory signature
-    ) public nonReentrant {
+        bytes calldata signature
+    ) public nonReentrant whenNotPaused {
         bool verified = verify(signer, to, amount, signature);
         uint256 claimable = amount - claimed[to];
         require(verified, "Signature cannot be verified");
         require(claimable > 0, "Not enough tokens to claim");
         require(
-            totalSupply() + claimable <= maxSupply,
-            "Cannot exceed max supply"
-        );
-        require(
             bootstrapCounter + claimable <= bootstrapSupply,
             "Cannot exceed bootstrap supply"
         );
-        if (incentiveSupply == 0) {}
         if (verified) {
             _mint(to, amount);
             claimed[to] = amount;
@@ -84,11 +82,26 @@ contract MetaverseToken is
         }
     }
 
+    function bootstrapMint(
+        address[] calldata to,
+        uint256[] calldata amount
+    ) public onlyOwner {
+        require(to.length == amount.length, "Invalid input");
+        for (uint256 i = 0; i < to.length; i++) {
+            require(
+                bootstrapCounter + amount[i] <= bootstrapSupply,
+                "Cannot exceed bootstrap supply"
+            );
+            _mint(to[i], amount[i]);
+            bootstrapCounter += amount[i];
+        }
+    }
+
     function incentiveClaim(
         address to,
         uint256 amount,
-        bytes memory signature
-    ) public nonReentrant {
+        bytes calldata signature
+    ) public nonReentrant whenNotPaused{
         bool verified = verify(signer, to, amount, signature);
         uint256 claimable = amount - claimed[to];
         require(verified, "Signature cannot be verified");
@@ -109,47 +122,41 @@ contract MetaverseToken is
         }
     }
 
-    function teamMint(address[] memory _to, uint256[] memory _amount)
-        public
-        onlyOwner
-    {
-        require(_to.length == _amount.length, "Invalid input");
-        for (uint256 i = 0; i < _to.length; i++) {
-            _mint(_to[i], _amount[i]);
-        }
-    }
-
-    function seedMint(address[] memory _to, uint256[] memory _amount)
-        public
-        onlyOwner
-    {
-        require(_to.length == _amount.length, "Invalid input");
-        for (uint256 i = 0; i < _to.length; i++) {
-            _mint(_to[i], _amount[i]);
-        }
-    }
-
-    function treasuryMint(address[] memory _to, uint256[] memory _amount)
-        public
-        onlyOwner
-    {
-        require(_to.length == _amount.length, "Invalid input");
-        for (uint256 i = 0; i < _to.length; i++) {
-            _mint(_to[i], _amount[i]);
-        }
-    }
-
-    function reservedMint(address[] memory _to, uint256[] memory _amount)
-        public
-        onlyOwner
-    {
-        require(_to.length == _amount.length, "Invalid input");
-        for (uint256 i = 0; i < _to.length; i++) {
-            _mint(_to[i], _amount[i]);
+    function devMint(address[] calldata to, uint256[] calldata amount, string calldata option) public onlyOwner {
+        require(distributionSet, "Distribution has not been set");
+        require(to.length == amount.length, "Invalid input");
+        if(keccak256(abi.encodePacked(option)) == keccak256(abi.encodePacked("team"))) {
+            for (uint256 i = 0; i < to.length; i++) {
+                require(teamCounter + amount[i] <= teamSupply, "Cannot exceed team supply");
+                _mint(to[i], amount[i]);
+                teamCounter += amount[i];
+            }
+        } else if(keccak256(abi.encodePacked(option)) == keccak256(abi.encodePacked("treasury"))) {
+            for (uint256 i = 0; i < to.length; i++) {
+                require(treasuryCounter + amount[i] <= treasurySupply, "Cannot exceed treasury supply");
+                _mint(to[i], amount[i]);
+                treasuryCounter += amount[i];
+            }
+        } else if(keccak256(abi.encodePacked(option)) == keccak256(abi.encodePacked("seed"))) {
+            for (uint256 i = 0; i < to.length; i++) {
+                require(seedCounter + amount[i] <= seedSupply, "Cannot exceed seed supply");
+                _mint(to[i], amount[i]);
+                seedCounter += amount[i];
+            }
+        } else if(keccak256(abi.encodePacked(option)) == keccak256(abi.encodePacked("reserved"))) {
+            for (uint256 i = 0; i < to.length; i++) {
+                require(reservedCounter + amount[i] <= reservedSupply, "Cannot exceed reserved supply");
+                _mint(to[i], amount[i]);
+                reservedCounter += amount[i];
+            }
         }
     }
 
     function pause() public onlyOwner {
         _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
     }
 }
