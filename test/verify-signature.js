@@ -45,19 +45,11 @@ describe("Verify Signature", function () {
     // sign the hash with the signer
     const signature = await signer.signMessage(ethers.utils.arrayify(hash));
 
-    // replicate getEthSignedMessageHash
-    const ethSignedHash = ethers.utils.solidityKeccak256(
-      ["string", "bytes"],
-      ["\x19Ethereum Signed Message:\n32", signature]
-    );
-
     console.log(
       "\n hash: ",
       hash,
       "\n signature: ",
-      signature,
-      "\n ethSignedHash: ",
-      ethSignedHash
+      signature
     );
 
     // verify that the message was signed by the signer

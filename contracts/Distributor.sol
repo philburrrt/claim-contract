@@ -32,7 +32,7 @@ contract Distributor is Pausable, VerifySig, ReentrancyGuard, Ownable {
         token = IERC20(_token);
     }
 
-    function setSigner(address _signer) public {
+    function setSigner(address _signer) public onlyOwner {
         signer = _signer;
     }
 
