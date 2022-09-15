@@ -22,7 +22,8 @@ interface IERC20 {
 
 contract Distributor is Pausable, VerifySig, ReentrancyGuard, Ownable {
     address public signer;
-    uint256 public balance;
+    uint256 public used;
+    uint256 public rewardForPd;
     mapping(address => uint256) public claimed;
     IERC20 token;
 
@@ -41,22 +42,23 @@ contract Distributor is Pausable, VerifySig, ReentrancyGuard, Ownable {
 
     function refill(uint256 _amount) public onlyOwner {
         token.transferFrom(msg.sender, address(this), _amount);
-        balance += _amount;
+        rewardForPd += _amount;
     }
 
     function claim(
-        address to,
-        uint256 amount,
-        bytes calldata signature
+        address _to,
+        uint256 _amount,
+        bytes calldata _signature
     ) public nonReentrant whenNotPaused {
-        bool verified = verify(signer, to, amount, signature);
-        uint256 claimable = amount - claimed[to];
+        require(_amount + used <= rewardForPd, "Not enough reward");
+        bool verified = verify(signer, _to, _amount, _signature);
+        uint256 claimable = _amount - claimed[_to];
         require(verified, "Signature cannot be verified");
         require(claimable > 0, "Not enough tokens to claim");
         if (verified) {
-            token.transfer(to, claimable);
-            claimed[to] = amount;
-            balance -= claimable;
+            token.transfer(_to, claimable);
+            claimed[_to] = _amount;
+            used += claimable;
         }
     }
 }
