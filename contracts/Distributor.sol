@@ -1,33 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./VerifySig.sol";
 
-contract Distributor is Pausable, Ownable, VerifySig, ReentrancyGuard {
-    mapping(address => uint256) public claimed;
+interface IERC20 {
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+
+    function balanceOf(address account) external view returns (uint256);
+}
+
+contract Distributor is Pausable, VerifySig, ReentrancyGuard, Ownable {
     address public signer;
-    address public tokenAddr;
-    IERC20 public token;
+    uint256 public balance;
+    mapping(address => uint256) public claimed;
+    IERC20 token;
 
-    constructor(address _signer, address _tokenAddr) {
+    constructor(address _signer, address _token) {
         setSigner(_signer);
-        setToken(_tokenAddr);
-    }
-
-    function setToken(address _tokenAddr) public onlyOwner {
-        tokenAddr = _tokenAddr;
-        token = IERC20(_tokenAddr);
+        token = IERC20(_token);
     }
 
     function setSigner(address _signer) public {
         signer = _signer;
     }
 
-    function bootstrapClaim(
+    function setToken(address _token) public onlyOwner {
+        token = IERC20(_token);
+    }
+
+    function refill(uint256 _amount) public onlyOwner {
+        token.transferFrom(msg.sender, address(this), _amount);
+        balance += _amount;
+    }
+
+    function claim(
         address to,
         uint256 amount,
         bytes calldata signature
@@ -36,21 +53,10 @@ contract Distributor is Pausable, Ownable, VerifySig, ReentrancyGuard {
         uint256 claimable = amount - claimed[to];
         require(verified, "Signature cannot be verified");
         require(claimable > 0, "Not enough tokens to claim");
-        require(
-            claimable <= token.balanceOf(address(this)),
-            "Claim exceeds contract balance"
-        );
         if (verified) {
-            token.transferFrom(address(this), to, claimable);
+            token.transfer(to, claimable);
             claimed[to] = amount;
+            balance -= claimable;
         }
-    }
-
-    function pause() public onlyOwner {
-        _pause();
-    }
-
-    function unpause() public onlyOwner {
-        _unpause();
     }
 }
