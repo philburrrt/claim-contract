@@ -43,6 +43,7 @@ contract Distributor is Pausable, VerifySig, ReentrancyGuard, Ownable {
     function refill(uint256 _amount) public onlyOwner {
         token.transferFrom(msg.sender, address(this), _amount);
         rewardForPd += _amount;
+        delete used;
     }
 
     function claim(
