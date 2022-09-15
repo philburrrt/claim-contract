@@ -55,7 +55,7 @@ contract Distributor is Pausable, VerifySig, ReentrancyGuard, Ownable {
         bool verified = verify(signer, _to, _amount, _signature);
         uint256 claimable = _amount - claimed[_to];
         require(verified, "Signature cannot be verified");
-        require(claimable > 0, "Not enough tokens to claim");
+        require(claimable > 0, "You have claimed all owed tokens");
         if (verified) {
             token.transfer(_to, claimable);
             claimed[_to] = _amount;
